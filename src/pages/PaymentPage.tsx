@@ -7,6 +7,12 @@ import { Shield, CreditCard, DollarSign, CheckCircle, AlertCircle, ArrowLeft, XC
 import { supabase } from '@/src/lib/supabase'
 import { createCheckoutSession, redirectToCheckout, getUserOrders } from '@/src/lib/stripe'
 import { STRIPE_PRODUCTS, formatPrice, type ProductKey } from '@/src/stripe-config'
+import { 
+  areAllRequiredPaymentsCompleted, 
+  isPaymentCompleted, 
+  getOverallPaymentStatus,
+  PAYMENT_GROUPS 
+} from '@/src/lib/payment-config'
 import SubscriptionStatus from '@/src/components/SubscriptionStatus'
 import NotificationBell from '@/src/components/NotificationBell'
 import { env } from '@/src/lib/env'
@@ -51,7 +57,6 @@ export default function PaymentPage() {
       // Check if payment was successful
       if (paymentStatus === 'success') {
         // Refresh the project data to get updated payment status
-        console.log('Payment success detected, refreshing project data...')
         // Force refresh the project data
         setTimeout(async () => {
           try {
@@ -63,10 +68,8 @@ export default function PaymentPage() {
             
             if (!refreshError && refreshedProject) {
               setProject(refreshedProject)
-              console.log('Project data refreshed:', refreshedProject.payment_status)
             }
           } catch (error) {
-            console.error('Error refreshing project data:', error)
           }
         }, 1000)
       }
@@ -107,44 +110,52 @@ export default function PaymentPage() {
 
         // Load user's order history for this project
         try {
-          const orderHistory = await getUserOrders(project.id)
-          setOrders(orderHistory)
+          // Use projectData.id instead of project?.id since project state hasn't updated yet
+          if (projectData.id) {
+            const orderHistory = await getUserOrders(projectData.id)
+            setOrders(orderHistory)
+          }
           
           // Also load completed orders for payment status checking
-          if (user) {
+          // Use projectData.id instead of project?.id since project state hasn't updated yet
+          if (user?.id && projectData.id) {
             const { data: customerData, error: customerError } = await supabase
               .from('stripe_customers')
               .select('customer_id')
               .eq('user_id', user.id)
               .maybeSingle()
 
-            if (!customerError && customerData) {
+            if (customerError) {
+              setCompletedOrders([])
+            } else if (!customerData) {
+              setCompletedOrders([])
+            } else {
+
               const { data: completedOrdersData, error: ordersError } = await supabase
                 .from('stripe_orders')
                 .select('*')
                 .eq('customer_id', customerData.customer_id)
-                .eq('project_id', project.id)
+                .eq('project_id', projectData.id)
                 .eq('status', 'completed')
 
               if (!ordersError) {
-                console.log('Loaded completed orders:', completedOrdersData)
                 setCompletedOrders(completedOrdersData || [])
               } else {
-                console.error('Error loading completed orders:', ordersError)
+                setCompletedOrders([])
               }
             }
           }
         } catch (error) {
-          console.error('Error loading orders:', error)
           setOrders([])
         }
 
         // Check if all orders are completed and update project status
-        setTimeout(async () => {
-          await checkAndUpdatePaymentStatus()
-        }, 1000)
+        if (project?.id && user?.id) {
+          setTimeout(async () => {
+            await checkAndUpdatePaymentStatus()
+          }, 1000)
+        }
       } catch (error) {
-        console.error('Error loading payment data:', error)
         setError('Failed to load project details')
       } finally {
         setLoading(false)
@@ -154,31 +165,25 @@ export default function PaymentPage() {
     loadData()
   }, [projectId, navigate, paymentStatus])
 
+
   // Helper function to check if a specific payment type is completed
-  const isPaymentCompleted = (productKey: string) => {
-    const isCompleted = completedOrders.some(order => order.product_id === productKey)
-    console.log(`Payment check for ${productKey}:`, {
-      productKey,
-      completedOrders: completedOrders.length,
-      isCompleted,
-      orders: completedOrders.map(o => ({ amount: o.amount_total, product: o.product_id })),
-      allOrders: completedOrders
-    })
-    return isCompleted
+  const isPaymentCompletedLocal = (productKey: string) => {
+    return isPaymentCompleted(productKey, completedOrders)
   }
 
   // Helper function to check if all required payments are completed
   const areAllPaymentsCompleted = () => {
-    const requiredProducts = ['SECURITY_DEPOSIT', 'DISASTERSHIELD_SERVICE_FEE', 'EMERGENCY_RESPONSE_FEE']
-    const allCompleted = requiredProducts.every(productKey => isPaymentCompleted(productKey))
-    console.log('All payments completed check:', {
-      requiredProducts,
-      allCompleted,
-      projectPaymentStatus: project?.payment_status,
-      completedOrdersCount: completedOrders.length
-    })
-    return allCompleted
+    return areAllRequiredPaymentsCompleted(completedOrders)
   }
+
+  // Helper function to get completed required payments count
+  const getCompletedRequiredPaymentsCount = () => {
+    const requiredProducts = PAYMENT_GROUPS.CORE_PROJECT.products
+    return requiredProducts.filter(productKey => 
+      isPaymentCompleted(productKey, completedOrders)
+    ).length
+  }
+
 
   // Check if all required orders are completed and update project status
   const checkAndUpdatePaymentStatus = async () => {
@@ -200,13 +205,11 @@ export default function PaymentPage() {
         .maybeSingle()
 
       if (customerError) {
-        console.error('Error fetching customer data:', customerError)
         toast.error('Error fetching customer data', { id: 'payment-check' })
         return
       }
 
       if (!customerData) {
-        console.log('No Stripe customer found for user - they will be created on first payment')
         toast.info('No payment history found. Customer will be created on first payment.', { id: 'payment-check' })
         return
       }
@@ -220,22 +223,15 @@ export default function PaymentPage() {
         .eq('status', 'completed')
 
       if (ordersError) {
-        console.error('Error fetching orders:', ordersError)
         toast.error('Error fetching payment orders', { id: 'payment-check' })
         return
       }
 
       // Check if we have all required orders completed
-      const requiredProducts = ['SECURITY_DEPOSIT', 'DISASTERSHIELD_SERVICE_FEE', 'EMERGENCY_RESPONSE_FEE']
-      const completedProductIds = completedOrders?.map(order => order.product_id) || []
-      
-      const allRequiredCompleted = requiredProducts.every(productId => 
-        completedProductIds.includes(productId)
-      )
+      const allRequiredCompleted = areAllRequiredPaymentsCompleted(completedOrders || [])
 
       // Update project payment status if all orders are completed
       if (allRequiredCompleted && project.payment_status !== 'paid') {
-        console.log('All required orders completed, updating project status to paid')
         toast.loading('All payments completed! Updating project status...', { id: 'payment-check' })
         
         const { error: updateError } = await supabase
@@ -246,17 +242,74 @@ export default function PaymentPage() {
         if (!updateError) {
           setProject(prev => ({ ...prev, payment_status: 'paid' }))
           toast.success('✅ All payments completed! Project status updated to Paid.', { id: 'payment-check' })
+          
+          // Send notification to contractor about payment completion
+          try {
+            if (project.assigned_contractor_id) {
+              // Get contractor details
+              const { data: contractorData } = await supabase
+                .from('contractors')
+                .select('contact_name, company_name, email')
+                .eq('id', project.assigned_contractor_id)
+                .single()
+
+              if (contractorData?.email) {
+                // Calculate total amount from completed orders
+                const totalAmount = completedOrders.reduce((sum, order) => sum + (order.amount_total || 0), 0)
+                
+                // Send email notification
+                const { resendEmailService } = await import('@/lib/email/resend-service')
+                await resendEmailService.sendPaymentCompletedNotification({
+                  contractorEmail: contractorData.email,
+                  contractorName: contractorData.contact_name,
+                  companyName: contractorData.company_name,
+                  projectDetails: {
+                    address: project.address,
+                    city: project.city,
+                    state: project.state,
+                    peril: project.peril,
+                    contactName: project.contact_name,
+                    contactPhone: project.contact_phone
+                  },
+                  totalAmount
+                })
+
+                // Create notification for contractor
+                const { data: contractorProfile } = await supabase
+                  .from('contractors')
+                  .select('user_id')
+                  .eq('id', project.assigned_contractor_id)
+                  .single()
+
+                if (contractorProfile?.user_id) {
+                  await supabase.from('notifications').insert({
+                    user_id: contractorProfile.user_id,
+                    type: 'payment_completed',
+                    title: '💰 Payment Completed!',
+                    message: `All payments have been completed for your project at ${project.address}. You can now begin work!`,
+                    data: {
+                      projectId: project.id,
+                      totalAmount
+                    }
+                  })
+                }
+              }
+            }
+          } catch (notificationError) {
+            // Don't fail the whole process for notification errors
+            console.error('Error sending payment completion notification:', notificationError)
+          }
         } else {
           toast.error('❌ Error updating project status. Please try again.', { id: 'payment-check' })
         }
       } else if (allRequiredCompleted) {
         toast.success('✅ All payments are already completed!', { id: 'payment-check' })
       } else {
-        const completedCount = completedProductIds.length
-        toast.info(`📊 ${completedCount} of 3 payments completed. ${3 - completedCount} payments remaining.`, { id: 'payment-check' })
+        const completedRequiredCount = getCompletedRequiredPaymentsCount()
+        const requiredCount = PAYMENT_GROUPS.CORE_PROJECT.products.length
+        toast.info(`📊 ${completedRequiredCount} of ${requiredCount} required payments completed. ${requiredCount - completedRequiredCount} payments remaining.`, { id: 'payment-check' })
       }
     } catch (error) {
-      console.error('Error checking payment status:', error)
       toast.error('❌ Error checking payment status. Please try again.', { id: 'payment-check' })
     } finally {
       setCheckingStatus(false)
@@ -265,7 +318,7 @@ export default function PaymentPage() {
 
   // Add polling to check for payment status updates
   useEffect(() => {
-    if (!project || project.payment_status === 'paid') return
+    if (!project?.id || project.payment_status === 'paid') return
 
     const pollForUpdates = setInterval(async () => {
       try {
@@ -276,7 +329,6 @@ export default function PaymentPage() {
           .single()
 
         if (!error && updatedProject && updatedProject.payment_status !== project.payment_status) {
-          console.log('Payment status updated:', updatedProject.payment_status)
           setProject(prev => ({ ...prev, payment_status: updatedProject.payment_status }))
           clearInterval(pollForUpdates)
         }
@@ -292,7 +344,10 @@ export default function PaymentPage() {
             .eq('user_id', user.id)
             .maybeSingle()
 
-          if (!customerError && customerData) {
+          if (customerError) {
+          } else if (!customerData) {
+          } else {
+
             const { data: completedOrdersData, error: ordersError } = await supabase
               .from('stripe_orders')
               .select('*')
@@ -300,16 +355,14 @@ export default function PaymentPage() {
               .eq('project_id', project.id)
               .eq('status', 'completed')
 
+
             if (!ordersError) {
-              console.log('Polling - Loaded completed orders:', completedOrdersData)
               setCompletedOrders(completedOrdersData || [])
             } else {
-              console.error('Polling - Error loading completed orders:', ordersError)
             }
           }
         }
       } catch (error) {
-        console.error('Error polling for payment updates:', error)
       }
     }, 10000) // Poll every 10 seconds (reduced frequency)
 
@@ -319,12 +372,16 @@ export default function PaymentPage() {
   const handlePayment = async (productKey: ProductKey) => {
     if (!project || !user) return
 
+    // CRITICAL: Check if payment is already completed to prevent duplicates
+    if (isPaymentCompletedLocal(productKey)) {
+      toast.error(`❌ This payment has already been completed! Please refresh the page to see updated status.`)
+      return
+    }
+
     setProcessing(true)
     setError('')
 
     try {
-      console.log(`Initiating payment for ${productKey} in TEST mode`)
-      
       // Create Stripe checkout session
       const { sessionId, url: checkoutUrl } = await createCheckoutSession({
         productKey: productKey,
@@ -336,9 +393,6 @@ export default function PaymentPage() {
       if (!sessionId || !checkoutUrl) {
         throw new Error('Could not create checkout session')
       }
-
-      console.log(`Redirecting to checkout with session ID: ${sessionId}`)
-      console.log(`Using checkout URL from Stripe: ${checkoutUrl}`)
       
       try {
         // Use the URL provided by Stripe
@@ -347,7 +401,6 @@ export default function PaymentPage() {
         // Set a timeout to check if the redirect hasn't happened
         // (this handles cases where the redirect silently fails)
         setTimeout(() => {
-          console.log('Redirect timeout - trying alternative approach')
           
           // Alternative approach: create a direct link for the user to click
           setError('Automatic redirect failed. Please click the button below to proceed to payment.')
@@ -367,14 +420,12 @@ export default function PaymentPage() {
           setProcessing(false)
         }, 3000)
       } catch (redirectError) {
-        console.error('Redirect error:', redirectError)
         
         // If redirectToCheckout fails, try direct URL redirect using Stripe's URL
         window.open(checkoutUrl, '_self')
       }
 
     } catch (error: any) {
-      console.error('Payment error:', error)
       
       // Check for various error conditions
       if (error.message) {
@@ -494,7 +545,7 @@ export default function PaymentPage() {
                 )}
 
                 {/* Security Deposit */}
-                {!isPaymentCompleted('SECURITY_DEPOSIT') && (
+                {!isPaymentCompletedLocal('SECURITY_DEPOSIT') && (
                   <div className="border rounded-lg p-6">
                     <div className="flex justify-between items-start mb-4">
                       <div>
@@ -520,7 +571,7 @@ export default function PaymentPage() {
                 )}
 
                 {/* Security Deposit - Completed */}
-                {isPaymentCompleted('SECURITY_DEPOSIT') && (
+                {isPaymentCompletedLocal('SECURITY_DEPOSIT') && (
                   <div className="border rounded-lg p-6 bg-green-50 border-green-200">
                     <div className="flex justify-between items-start mb-4">
                       <div>
@@ -551,7 +602,7 @@ export default function PaymentPage() {
                       <p className="text-sm text-gray-500">One-time</p>
                     </div>
                   </div>
-                  {isPaymentCompleted('DISASTERSHIELD_SERVICE_FEE') ? (
+                  {isPaymentCompletedLocal('DISASTERSHIELD_SERVICE_FEE') ? (
                     <div className="flex items-center justify-center p-4 bg-green-50 border border-green-200 rounded-lg">
                       <CheckCircle className="h-5 w-5 text-green-600 mr-2" />
                       <span className="text-green-800 font-medium">Payment Done!</span>
@@ -566,49 +617,39 @@ export default function PaymentPage() {
                       {processing ? 'Processing...' : 'Pay Service Fee'}
                     </Button>
                   )}
-                  {/* Debug info */}
-                  <div className="mt-2 text-xs text-gray-500">
-                    Debug: {isPaymentCompleted('DISASTERSHIELD_SERVICE_FEE') ? 'Completed' : 'Not completed'} 
-                    ({completedOrders.length} orders loaded)
-                  </div>
                 </div>
 
                 {/* Emergency Service Fee */}
                 <div className="border rounded-lg p-6">
                   <div className="flex justify-between items-start mb-4">
                     <div>
-                      <h3 className="text-lg font-semibold text-gray-900">{STRIPE_PRODUCTS.EMERGENCY_RESPONSE_FEE.name}</h3>
-                      <p className="text-gray-600 text-sm">{STRIPE_PRODUCTS.EMERGENCY_RESPONSE_FEE.description}</p>
+                      <h3 className="text-lg font-semibold text-gray-900">{STRIPE_PRODUCTS.REPAIR_COST_ESTIMATE.name}</h3>
+                      <p className="text-gray-600 text-sm">{STRIPE_PRODUCTS.REPAIR_COST_ESTIMATE.description}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-2xl font-bold text-gray-900">{formatPrice(STRIPE_PRODUCTS.EMERGENCY_RESPONSE_FEE.amount)}</p>
-                      <p className="text-sm text-gray-500">One-time</p>
+                      <p className="text-2xl font-bold text-gray-900">Dynamic Pricing</p>
+                      <p className="text-sm text-gray-500">Based on contractor estimate</p>
                     </div>
                   </div>
-                  {isPaymentCompleted('EMERGENCY_RESPONSE_FEE') ? (
+                  {isPaymentCompletedLocal('REPAIR_COST_ESTIMATE') ? (
                     <div className="flex items-center justify-center p-4 bg-green-50 border border-green-200 rounded-lg">
                       <CheckCircle className="h-5 w-5 text-green-600 mr-2" />
                       <span className="text-green-800 font-medium">Payment Done!</span>
                     </div>
                   ) : (
                     <Button 
-                      onClick={() => handlePayment('EMERGENCY_RESPONSE_FEE')}
+                      onClick={() => handlePayment('REPAIR_COST_ESTIMATE')}
                       disabled={processing}
                       className="w-full bg-orange-600 hover:bg-orange-700"
                     >
-                      {processing ? 'Processing...' : 'Pay Emergency Fee'}
+                      {processing ? 'Processing...' : 'Pay Repair Cost'}
                     </Button>
                   )}
-                  {/* Debug info */}
-                  <div className="mt-2 text-xs text-gray-500">
-                    Debug: {isPaymentCompleted('EMERGENCY_RESPONSE_FEE') ? 'Completed' : 'Not completed'} 
-                    ({completedOrders.length} orders loaded)
-                  </div>
                 </div>
               </CardContent>
             </Card>
 
-            {/* Order History */}
+            {/* Order History
             {orders.length > 0 && (
               <Card className="shadow-lg mt-6">
                 <CardHeader>
@@ -641,7 +682,7 @@ export default function PaymentPage() {
                   </div>
                 </CardContent>
               </Card>
-            )}
+            )} */}
           </div>
 
           {/* Project Summary */}
@@ -680,13 +721,17 @@ export default function PaymentPage() {
                   <Badge className={`border-0 ${
                     areAllPaymentsCompleted() 
                       ? 'bg-green-100 text-green-800' 
-                      : completedOrders.length > 0
+                      : getCompletedRequiredPaymentsCount() > 0
                       ? 'bg-blue-100 text-blue-800'
                       : 'bg-yellow-100 text-yellow-800'
                   }`}>
                     {areAllPaymentsCompleted() ? 'Paid' : 
-                     completedOrders.length > 0 ? 'Partially Paid' : 'Unpaid'}
+                     getCompletedRequiredPaymentsCount() > 0 ? 'Partially Paid' : 'Unpaid'}
                   </Badge>
+                  {/* <p className="text-sm text-gray-600 mt-1">
+                    Required: {getCompletedRequiredPaymentsCount()}/{PAYMENT_GROUPS.CORE_PROJECT.products.length} | 
+                    Total: {completedOrders.length} payments completed
+                  </p> */}
                 </div>
 
                 {areAllPaymentsCompleted() && (
@@ -700,7 +745,7 @@ export default function PaymentPage() {
 
                 {/* Check Payment Status button */}
                 {!areAllPaymentsCompleted() && (
-                  <div className="mt-4">
+                  <div className="mt-4 flex gap-2">
                     <Button 
                       variant="outline" 
                       size="sm"

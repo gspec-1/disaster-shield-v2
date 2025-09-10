@@ -10,6 +10,11 @@ import NotificationBell from '@/src/components/NotificationBell'
 import { supabase, isConfigured } from '@/src/lib/supabase'
 import { env } from '@/src/lib/env'
 import { toast } from 'sonner'
+import { 
+  areAllRequiredPaymentsCompleted, 
+  isPaymentCompleted,
+  PAYMENT_GROUPS 
+} from '@/src/lib/payment-config'
 import { executeCompleteWorkflow } from '@/lib/workflow/matching'
 
 export default function ProjectPortal() {
@@ -27,6 +32,19 @@ export default function ProjectPortal() {
   const [matchRequests, setMatchRequests] = useState<any[]>([])
   const [contractors, setContractors] = useState<any[]>([])
   const [completedOrders, setCompletedOrders] = useState<any[]>([])
+
+  // Helper function to get completed required payments count (excluding FNOL)
+  const getCompletedRequiredPaymentsCount = () => {
+    const requiredProducts = PAYMENT_GROUPS.CORE_PROJECT.products
+    return requiredProducts.filter(productKey => 
+      isPaymentCompleted(productKey, completedOrders)
+    ).length
+  }
+
+  // Helper function to check if all required payments are completed
+  const areAllRequiredPaymentsCompletedLocal = () => {
+    return areAllRequiredPaymentsCompleted(completedOrders)
+  }
 
   useEffect(() => {
     const loadProject = async () => {
@@ -71,25 +89,10 @@ export default function ProjectPortal() {
           .select('*')
           .eq('project_id', id)
 
-        console.log('Media loading results:', { mediaData, mediaError, projectId: id })
 
         if (!mediaError) {
           setMedia(mediaData || [])
-          console.log('Media loaded successfully:', mediaData?.length || 0, 'items')
-          
-          // Log details about each media item
-          mediaData?.forEach((item, index) => {
-            console.log(`Media item ${index}:`, {
-              id: item.id,
-              type: item.type,
-              filename: item.filename,
-              storage_path: item.storage_path,
-              mime_type: item.mime_type,
-              file_size: item.file_size
-            })
-          })
         } else {
-          console.error('Error loading media:', mediaError)
         }
 
         // Load match requests
@@ -133,15 +136,11 @@ export default function ProjectPortal() {
 
             if (!ordersError) {
               setCompletedOrders(ordersData || [])
-              console.log('Loaded completed orders:', ordersData?.length || 0, 'orders')
             } else {
-              console.error('Error loading orders:', ordersError)
             }
           } else {
-            console.log('No Stripe customer found for user:', user.id)
           }
         } else {
-          console.log('No user found, skipping order loading')
         }
 
       } catch (error: any) {
@@ -161,7 +160,6 @@ export default function ProjectPortal() {
     const pollForOrders = setInterval(async () => {
       try {
         if (!user?.id) {
-          console.log('No user found, skipping order polling')
           return
         }
 
@@ -183,15 +181,11 @@ export default function ProjectPortal() {
 
           if (!ordersError && ordersData) {
             setCompletedOrders(ordersData)
-            console.log('Polled completed orders:', ordersData.length, 'orders')
           } else if (ordersError) {
-            console.error('Error polling orders:', ordersError)
           }
         } else if (customerError) {
-          console.error('Error polling customer data:', customerError)
         }
       } catch (error) {
-        console.error('Error polling for orders:', error)
       }
     }, 5000) // Poll every 5 seconds
 
@@ -265,7 +259,6 @@ export default function ProjectPortal() {
         toast.error(workflowResult.errors.length > 0 ? workflowResult.errors[0] : 'No contractors found in your area for this type of damage.')
       }
     } catch (error: any) {
-      console.error('Error triggering matching:', error)
       toast.error('Failed to find contractors. Please try again.')
     } finally {
       setTriggeringMatching(false)
@@ -302,7 +295,6 @@ export default function ProjectPortal() {
       // Trigger matching again
       await handleTriggerMatching()
     } catch (error) {
-      console.error('Error re-matching contractors:', error)
       toast.error('Failed to rematch contractors. Please try again.')
     } finally {
       setRematching(false)
@@ -314,7 +306,6 @@ export default function ProjectPortal() {
     
     setDeletingProject(true)
     try {
-      console.log('Deleting project:', project.id, 'for user:', user.id)
       
       // Delete the project with explicit user check
       if (!supabase) throw new Error('Database connection not configured')
@@ -326,7 +317,6 @@ export default function ProjectPortal() {
         .select()
 
       if (deleteError) {
-        console.error('Error deleting project:', deleteError)
         throw new Error(deleteError.message)
       }
 
@@ -334,11 +324,9 @@ export default function ProjectPortal() {
         throw new Error('Project not found or you do not have permission to delete it')
       }
 
-      console.log('Project deleted successfully:', deletedData)
       toast.success('Claim deleted successfully')
       navigate('/client/dashboard')
     } catch (error: any) {
-      console.error('Error deleting project:', error)
       toast.error(error.message || 'Failed to delete claim. Please try again.')
     } finally {
       setDeletingProject(false)
@@ -526,11 +514,6 @@ export default function ProjectPortal() {
                         .from('media')
                         .getPublicUrl(item.storage_path)
                       
-                      console.log('Rendering media item:', {
-                        item,
-                        publicUrl: urlData.publicUrl,
-                        storagePath: item.storage_path
-                      })
                       
                       return (
                         <div key={item.id} className="relative group">
@@ -573,7 +556,6 @@ export default function ProjectPortal() {
                           ) : item.type === 'audio' ? (
                             <div className="aspect-square bg-blue-100 rounded-lg flex flex-col items-center justify-center p-4 relative z-10"
                                  onClick={(e) => {
-                                   console.log('Audio container clicked!', e.target)
                                    // Don't prevent default - let the audio controls handle the click
                                  }}>
                               <div className="w-12 h-12 bg-blue-200 rounded-full flex items-center justify-center mb-2">
@@ -586,26 +568,7 @@ export default function ProjectPortal() {
                                   className="w-full h-8 relative z-30"
                                   preload="metadata"
                                   onError={(e) => {
-                                    console.error('Audio loading error:', e)
-                                    console.error('Audio URL:', urlData.publicUrl)
-                                    console.error('Audio item:', item)
-                                    console.error('Error details:', {
-                                      networkState: e.currentTarget.networkState,
-                                      readyState: e.currentTarget.readyState,
-                                      error: e.currentTarget.error
-                                    })
-                                  }}
-                                  onLoadStart={() => {
-                                    console.log('Audio loading started:', urlData.publicUrl)
-                                  }}
-                                  onCanPlay={() => {
-                                    console.log('Audio can play:', urlData.publicUrl)
-                                  }}
-                                  onLoadedMetadata={(e) => {
-                                    console.log('Audio metadata loaded:', {
-                                      duration: e.currentTarget.duration,
-                                      url: urlData.publicUrl
-                                    })
+                                    // Audio loading error - handled silently
                                   }}
                                 >
                                   Your browser does not support the audio element.
@@ -615,7 +578,6 @@ export default function ProjectPortal() {
                                 </p>
                                 <p className="text-xs text-blue-600 mt-1 text-center cursor-pointer hover:underline relative z-40"
                                    onClick={() => {
-                                     console.log('Direct audio URL:', urlData.publicUrl)
                                      window.open(urlData.publicUrl, '_blank')
                                    }}>
                                   Open in new tab
@@ -717,27 +679,59 @@ export default function ProjectPortal() {
             </Card>
 
             {/* Insurance Information */}
-            {(project.carrier_name || project.policy_number) && (
-              <Card className="shadow-lg">
-                <CardHeader>
-                  <CardTitle>Insurance Information</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  {project.carrier_name && (
+            <Card className="shadow-lg">
+              <CardHeader>
+                <CardTitle>Insurance Information</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {project.carrier_name ? (
+                  <>
                     <div>
                       <p className="font-medium text-gray-900">Carrier</p>
                       <p className="text-gray-600">{project.carrier_name}</p>
                     </div>
+                    {project.policy_number && (
+                      <div>
+                        <p className="font-medium text-gray-900">Policy Number</p>
+                        <p className="text-gray-600">{project.policy_number}</p>
+                      </div>
+                    )}
+                    {project.fnol_status && (
+                      <div>
+                        <p className="font-medium text-gray-900">FNOL Status</p>
+                        <div className="flex items-center gap-2">
+                          <Badge variant={
+                            project.fnol_status === 'acknowledged' ? 'default' :
+                            project.fnol_status === 'submitted' ? 'secondary' :
+                            project.fnol_status === 'failed' ? 'destructive' :
+                            'outline'
+                          }>
+                            {project.fnol_status.charAt(0).toUpperCase() + project.fnol_status.slice(1)}
+                          </Badge>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="text-center py-4">
+                    <p className="text-gray-500 mb-2">No insurance information provided</p>
+                    <p className="text-sm text-gray-400">You can still generate an FNOL document</p>
+                  </div>
+                )}
+              </CardContent>
+              <CardFooter>
+                <div className="w-full flex justify-end">
+                  {!isContractor && (
+                    <Link to={`/fnol/${project.id}`}>
+                      <Button variant="outline" size="sm">
+                        <FileText className="h-4 w-4 mr-2" />
+                        {project.fnol_status === 'not_filed' ? 'Generate FNOL' : 'View FNOL'}
+                      </Button>
+                    </Link>
                   )}
-                  {project.policy_number && (
-                    <div>
-                      <p className="font-medium text-gray-900">Policy Number</p>
-                      <p className="text-gray-600">{project.policy_number}</p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            )}
+                </div>
+              </CardFooter>
+            </Card>
 
             {/* Status Timeline - Only shown to homeowners, not contractors */}
             {!isContractor && (
@@ -791,16 +785,11 @@ export default function ProjectPortal() {
                   )}
                   {/* Payment Progress - Integrated into timeline */}
                   {project.assigned_contractor_id && (
-                    console.log('Payment status debug:', {
-                      projectPaymentStatus: project.payment_status,
-                      completedOrdersCount: completedOrders.length,
-                      completedOrders: completedOrders.map(o => ({ amount: o.amount_total, product: o.product_id }))
-                    }),
                     <div className="flex items-center gap-3">
                       <div className={`w-3 h-3 rounded-full ${
-                        completedOrders.length === 3
+                        areAllRequiredPaymentsCompletedLocal()
                           ? 'bg-green-500' 
-                          : completedOrders.length > 0
+                          : getCompletedRequiredPaymentsCount() > 0
                           ? 'bg-yellow-500'
                           : 'bg-gray-400'
                       }`}></div>
@@ -808,14 +797,14 @@ export default function ProjectPortal() {
                         <div className="flex items-center justify-between">
                       <div>
                             <p className="font-medium text-gray-900">
-                              {completedOrders.length === 3 ? 'Payment Completed' : 
-                               completedOrders.length > 0 ? 'Payment In Progress' : 'Payment Required'}
+                              {areAllRequiredPaymentsCompletedLocal() ? 'Payment Completed' : 
+                               getCompletedRequiredPaymentsCount() > 0 ? 'Payment In Progress' : 'Payment Required'}
                             </p>
                             <p className="text-sm text-gray-600">
-                              {completedOrders.length === 3
-                                ? 'All payments completed' 
-                                : completedOrders.length > 0 
-                                ? `${completedOrders.length} of 3 payments completed`
+                              {areAllRequiredPaymentsCompletedLocal()
+                                ? 'All required payments completed' 
+                                : getCompletedRequiredPaymentsCount() > 0 
+                                ? `${getCompletedRequiredPaymentsCount()} of ${PAYMENT_GROUPS.CORE_PROJECT.products.length} required payments completed`
                                 : 'Complete payment to begin work'
                               }
                             </p>
@@ -823,10 +812,10 @@ export default function ProjectPortal() {
                           <Link to={`/payment/${project.id}`}>
                             <Button 
                               size="sm" 
-                              variant={completedOrders.length > 0 ? "outline" : "default"}
-                              className={completedOrders.length > 0 ? "" : "bg-green-600 hover:bg-green-700"}
+                              variant={getCompletedRequiredPaymentsCount() > 0 ? "outline" : "default"}
+                              className={getCompletedRequiredPaymentsCount() > 0 ? "" : "bg-green-600 hover:bg-green-700"}
                             >
-                              {completedOrders.length > 0 ? 'Review Payments' : 'Complete Payment'}
+                              {getCompletedRequiredPaymentsCount() > 0 ? 'Review Payments' : 'Complete Payment'}
                             </Button>
                           </Link>
                         </div>

@@ -79,8 +79,6 @@ export async function createCheckoutSession(data: CreateCheckoutSessionData): Pr
         throw new Error('No checkout URL returned from server')
       }
       
-      console.log(`Checkout URL provided by server: ${url}`)
-      
       return { sessionId, url }
     } catch (fetchError: any) {
       console.error('Fetch error creating checkout session:', fetchError)
@@ -96,25 +94,16 @@ export async function createCheckoutSession(data: CreateCheckoutSessionData): Pr
 }
 
 export async function redirectToCheckout(checkoutUrl: string) {
-  console.log(`Redirecting to Stripe checkout URL: ${checkoutUrl}`)
-  
   try {
     // Get the current environment
     const isIframe = window !== window.top
-    const isDevelopment = window.location.hostname === 'localhost'
-    const isVercel = window.location.hostname.includes('vercel.app')
-    
-    console.log('Environment check:', { isIframe, isDevelopment, isVercel })
-    
     // For iframe environments (like Bolt preview), use _top to break out
     if (isIframe) {
-      console.log('Iframe detected - using window.top for redirect')
       window.top!.location.href = checkoutUrl
       return
     }
     
     // For standalone environments, use direct redirect
-    console.log(`Redirecting to: ${checkoutUrl}`)
     
     window.location.href = checkoutUrl
   } catch (error: any) {
@@ -165,11 +154,19 @@ export async function getUserSubscription() {
 // Get user's order history for a specific project
 export async function getUserOrders(projectId?: string) {
   try {
-    // First get the user's Stripe customer ID
+    // First get the current user
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
+    
+    if (userError || !user) {
+      console.error('Error getting user:', userError)
+      return []
+    }
+
+    // Then get the user's Stripe customer ID
     const { data: customerData, error: customerError } = await supabase
       .from('stripe_customers')
       .select('customer_id')
-      .eq('user_id', (await supabase.auth.getUser()).data.user?.id)
+      .eq('user_id', user.id)
       .maybeSingle()
 
     if (customerError) {

@@ -88,6 +88,7 @@ Deno.serve(async (req) => {
       );
     }
 
+
     // Validate mode
     if (!['payment', 'subscription'].includes(mode)) {
       return new Response(
@@ -236,6 +237,34 @@ Deno.serve(async (req) => {
           }),
           { 
             status: 500, 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          }
+        );
+      }
+    }
+
+    // CRITICAL: Check for duplicate payments before creating checkout session
+    if (mode === 'payment') {
+      // Check if this user has already completed a payment for this product and project
+      const { data: existingOrders, error: existingOrdersError } = await supabase
+        .from('stripe_orders')
+        .select('id, status')
+        .eq('customer_id', customerId)
+        .eq('project_id', project_id)
+        .eq('product_id', product_id)
+        .eq('status', 'completed');
+
+      if (existingOrdersError) {
+        console.error('Error checking for existing orders:', existingOrdersError);
+      } else if (existingOrders && existingOrders.length > 0) {
+        console.log(`Duplicate payment attempt blocked for user ${user.id}, project ${project_id}, product ${product_id}`);
+        return new Response(
+          JSON.stringify({ 
+            error: 'Payment already completed', 
+            message: 'This payment has already been completed for this project. Please refresh the page to see updated status.' 
+          }),
+          { 
+            status: 400, 
             headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
           }
         );
