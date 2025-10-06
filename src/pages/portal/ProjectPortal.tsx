@@ -7,6 +7,7 @@ import { Shield, MapPin, Calendar, FileText, Phone, Mail, Clock, Trash2, MoreVer
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog'
 import NotificationBell from '@/src/components/NotificationBell'
+import ShoppingCart from '@/src/components/ShoppingCart'
 import { supabase, isConfigured } from '@/src/lib/supabase'
 import { env } from '@/src/lib/env'
 import { toast } from 'sonner'
@@ -401,6 +402,7 @@ export default function ProjectPortal() {
             </div>
             <div className="flex items-center space-x-4">
               <div className="flex items-center gap-2">
+                <ShoppingCart userId={user?.id} />
                 <NotificationBell userId={user?.id} />
                 <Badge className={`${getStatusColor(project.status)} border-0`}>
                   {project.status.charAt(0).toUpperCase() + project.status.slice(1)}

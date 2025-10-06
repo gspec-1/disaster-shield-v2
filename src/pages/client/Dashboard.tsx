@@ -10,6 +10,7 @@ import { supabase } from '@/src/lib/supabase'
 import type { Database } from '@/src/lib/supabase'
 import NotificationBell from '@/src/components/NotificationBell'
 import SubscriptionStatus from '@/src/components/SubscriptionStatus'
+import ShoppingCart from '@/src/components/ShoppingCart'
 import { toast } from 'sonner'
 
 type Project = Database['public']['Tables']['projects']['Row']
@@ -175,6 +176,7 @@ export default function ClientDashboard() {
                   </Button>
                 </Link>
               )}
+              <ShoppingCart userId={user?.id} />
               <NotificationBell />
               <SubscriptionStatus userId={user?.id} />
               <Button variant="outline" onClick={handleSignOut}>

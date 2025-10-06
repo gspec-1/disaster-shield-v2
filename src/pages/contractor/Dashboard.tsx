@@ -7,6 +7,7 @@ import { Shield, Settings, Briefcase, Clock, CheckCircle, AlertCircle } from 'lu
 import { supabase } from '@/src/lib/supabase'
 import NotificationBell from '@/src/components/NotificationBell'
 import SubscriptionStatus from '@/src/components/SubscriptionStatus'
+import ShoppingCart from '@/src/components/ShoppingCart'
 
 export default function ContractorDashboard() {
   const navigate = useNavigate()
@@ -128,6 +129,7 @@ export default function ContractorDashboard() {
               <span className="text-sm text-gray-600">
                 Welcome, {contractor?.company_name || user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'User'}
               </span>
+              <ShoppingCart userId={user?.id} />
               <NotificationBell />
               <SubscriptionStatus userId={user?.id} />
               <Link to="/contractor/profile">

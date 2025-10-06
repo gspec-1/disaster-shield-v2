@@ -15,6 +15,7 @@ import {
 } from '@/src/lib/payment-config'
 import SubscriptionStatus from '@/src/components/SubscriptionStatus'
 import NotificationBell from '@/src/components/NotificationBell'
+import ShoppingCart from '@/src/components/ShoppingCart'
 import { env } from '@/src/lib/env'
 import { toast } from 'sonner'
 
@@ -483,6 +484,7 @@ export default function PaymentPage() {
               <span className="text-sm font-medium">Back to Project</span>
             </Link>
             <div className="flex items-center space-x-2">
+              <ShoppingCart userId={user?.id} />
               <NotificationBell userId={user?.id} />
               <Shield className="h-8 w-8 text-blue-600" />
               <span className="text-xl font-bold text-gray-900">DisasterShield</span>
