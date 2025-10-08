@@ -142,7 +142,7 @@ export default function NotificationBell({ userId }: NotificationBellProps) {
       </Button>
 
       {isOpen && (
-        <div className="absolute right-0 top-full mt-2 w-96 z-50">
+        <div className="absolute right-0 top-full mt-2 w-80 max-w-[90vw] sm:w-96 z-50" style={{ right: 'max(-10vw, -20px)' }}>
           <Card className="shadow-lg border-0 max-h-96 overflow-hidden">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
