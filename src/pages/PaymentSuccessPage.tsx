@@ -12,14 +12,23 @@ export default function PaymentSuccessPage() {
   const [project, setProject] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [user, setUser] = useState<any>(null)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     const loadProject = async () => {
+      console.log('PaymentSuccessPage: Loading project with ID:', projectId)
+      
       // Get current user
       const { data: { user } } = await supabase.auth.getUser()
+      console.log('PaymentSuccessPage: User:', user)
       setUser(user)
       
-      if (!projectId) return
+      if (!projectId) {
+        console.log('PaymentSuccessPage: No project ID provided')
+        setError('No project ID provided')
+        setLoading(false)
+        return
+      }
 
       try {
         const { data: projectData, error } = await supabase
@@ -28,7 +37,10 @@ export default function PaymentSuccessPage() {
           .eq('id', projectId)
           .single()
 
-        if (!error && projectData) {
+        if (error) {
+          console.error('Error loading project:', error)
+          setError(`Failed to load project: ${error.message}`)
+        } else if (projectData) {
           setProject(projectData)
           
           // Update project payment status to paid
@@ -39,14 +51,18 @@ export default function PaymentSuccessPage() {
           
           if (updateError) {
             console.error('Error updating payment status:', updateError)
+            setError(`Failed to update payment status: ${updateError.message}`)
           } else {
             console.log('Payment status updated to paid for project:', projectId)
             // Update local state
             setProject(prev => ({ ...prev, payment_status: 'paid' }))
           }
+        } else {
+          setError('Project not found')
         }
       } catch (error) {
         console.error('Error loading project:', error)
+        setError(`Unexpected error: ${error instanceof Error ? error.message : 'Unknown error'}`)
       } finally {
         setLoading(false)
       }
@@ -66,13 +82,43 @@ export default function PaymentSuccessPage() {
     )
   }
 
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="max-w-md w-full text-center">
+          <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Shield className="h-8 w-8 text-red-600" />
+            </div>
+            <h2 className="text-xl font-bold text-red-900 mb-2">Error</h2>
+            <p className="text-red-700 mb-4">{error}</p>
+            <div className="space-y-2">
+              <Link to="/client/dashboard">
+                <Button variant="outline" className="w-full">
+                  Return to Dashboard
+                </Button>
+              </Link>
+              <Link to="/">
+                <Button variant="outline" className="w-full">
+                  Go to Homepage
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full">
         <div className="text-center mb-8">
-          <div className="flex justify-center mb-4">
-            <NotificationBell userId={user?.id} />
-          </div>
+          {user && (
+            <div className="flex justify-center mb-4">
+              <NotificationBell userId={user?.id} />
+            </div>
+          )}
           <Link to="/" className="inline-flex items-center space-x-2">
             <Shield className="h-10 w-10 text-blue-600" />
             <span className="text-2xl font-bold text-gray-900">DisasterShield</span>
