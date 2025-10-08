@@ -87,7 +87,8 @@ export default function SignupPage() {
             full_name: validatedData.fullName,
             phone: validatedData.phone,
             role: validatedData.role,
-          }
+          },
+          emailRedirectTo: `${window.location.origin}/auth/login`
         }
       })
 
