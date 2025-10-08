@@ -179,7 +179,7 @@ export default function SignupPage() {
                 {userEmail}
               </p>
               <p className="text-gray-600 mb-8">
-                You can now sign in and start using DisasterShield. No email confirmation required!
+                Verify your email address to complete your account setup.
               </p>
               
               <div className="space-y-4">
