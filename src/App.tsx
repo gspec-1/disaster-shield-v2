@@ -9,6 +9,7 @@ import LoginPage from './pages/auth/LoginPage'
 import ForgotPasswordPage from './pages/auth/ForgotPasswordPage'
 import ResetPasswordPage from './pages/auth/ResetPasswordPage'
 import ClientDashboard from './pages/client/Dashboard'
+import ClientProfile from './pages/client/Profile'
 import BrowseContractors from './pages/client/BrowseContractors'
 import ReviewEstimates from './pages/client/ReviewEstimates'
 import MatchingPage from './pages/MatchingPage'
@@ -44,6 +45,7 @@ function App() {
         <Route path="/auth/reset-password" element={<ResetPasswordPage />} />
         <Route path="/client/login" element={<LoginPage />} />
         <Route path="/client/dashboard" element={<ClientDashboard />} />
+        <Route path="/client/profile" element={<ClientProfile />} />
         <Route path="/client/browse-contractors" element={<BrowseContractors />} />
         <Route path="/client/review-estimates/:projectId" element={<ReviewEstimates />} />
         <Route path="/matching/:projectId" element={<MatchingPage />} />
