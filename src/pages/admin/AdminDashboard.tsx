@@ -18,7 +18,6 @@ import {
 } from 'lucide-react'
 import { supabase } from '@/src/lib/supabase'
 import { toast } from 'sonner'
-import ShoppingCart from '@/src/components/ShoppingCart'
 
 interface DashboardStats {
   totalProjects: number
@@ -153,7 +152,6 @@ export default function AdminDashboard() {
               </Link>
             </div>
             <div className="flex items-center space-x-4">
-              <ShoppingCart userId={user?.id} />
               <div className="text-sm text-gray-600">
                 Admin Portal
               </div>

@@ -402,7 +402,7 @@ export default function ProjectPortal() {
             </div>
             <div className="flex items-center space-x-4">
               <div className="flex items-center gap-2">
-                <ShoppingCart userId={user?.id} />
+                {!isContractor && <ShoppingCart userId={user?.id} />}
                 <NotificationBell userId={user?.id} />
                 <Badge className={`${getStatusColor(project.status)} border-0`}>
                   {project.status.charAt(0).toUpperCase() + project.status.slice(1)}
