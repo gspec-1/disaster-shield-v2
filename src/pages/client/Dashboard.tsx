@@ -164,6 +164,9 @@ export default function ClientDashboard() {
         showShoppingCart={true}
         showSettings={true}
         settingsLink="/client/profile"
+        showBackButton={true}
+        backButtonText="Back to Home"
+        backButtonLink="/"
         onSignOut={handleSignOut}
       />
 

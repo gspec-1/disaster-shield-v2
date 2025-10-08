@@ -145,7 +145,7 @@ export default function AdminDashboard() {
         showShoppingCart={false}
         showSettings={false}
         showBackButton={true}
-        backButtonText=""
+        backButtonText="Back to Home"
         backButtonLink="/"
       />
 

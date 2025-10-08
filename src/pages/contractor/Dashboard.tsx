@@ -122,6 +122,9 @@ export default function ContractorDashboard() {
         showShoppingCart={false}
         showSettings={true}
         settingsLink="/contractor/profile"
+        showBackButton={true}
+        backButtonText="Back to Home"
+        backButtonLink="/"
         welcomeText={contractor?.company_name || user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'User'}
         onSignOut={handleSignOut}
       />
