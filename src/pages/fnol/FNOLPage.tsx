@@ -137,26 +137,36 @@ export default function FNOLPage() {
   useEffect(() => {
     if (paymentStatus === 'success') {
       toast.success('Payment successful! You can now submit your FNOL.')
-      // Reload completed orders to update payment status with a delay
+      // Reload completed orders to update payment status with multiple attempts
       if (project) {
+        // Try immediately
+        loadCompletedOrders()
+        
+        // Try again after 1 second for webhook processing
         setTimeout(() => {
           loadCompletedOrders()
-        }, 1000) // Wait 1 second for webhook to process
+        }, 1000)
+        
+        // Try again after 3 seconds as backup
+        setTimeout(() => {
+          loadCompletedOrders()
+        }, 3000)
       }
     } else if (paymentStatus === 'cancelled') {
       toast.error('Payment was cancelled. Please try again if you want to submit your FNOL.')
     }
   }, [paymentStatus, project])
 
-  // Periodic refresh of payment status (every 30 seconds) when payment is pending
+  // Periodic refresh of payment status (every 10 seconds) when payment is pending
   useEffect(() => {
     if (!project || !existingFNOL || existingFNOL.status !== 'pending') return
 
     const interval = setInterval(() => {
       if (!isFNOLPaymentCompleted()) {
+        console.log('Periodic payment status check...')
         loadCompletedOrders()
       }
-    }, 30000) // Check every 30 seconds
+    }, 10000) // Check every 10 seconds
 
     return () => clearInterval(interval)
   }, [project, existingFNOL])
@@ -421,10 +431,20 @@ export default function FNOLPage() {
     if (!project) return
 
     try {
+      console.log('Loading completed orders for project:', project.id)
       const orders = await getUserOrders(project.id)
+      console.log('All orders:', orders)
       const completed = orders.filter(order => order.status === 'completed')
+      console.log('Completed orders:', completed)
       setCompletedOrders(completed)
+      
+      // Check if FNOL payment is completed
+      const fnolPaymentCompleted = isPaymentCompleted('FNOL_GENERATION_FEE', completed)
+      console.log('FNOL payment completed:', fnolPaymentCompleted)
+      
     } catch (error) {
+      console.error('Error loading completed orders:', error)
+      toast.error('Failed to load payment status')
     }
   }
 
@@ -577,13 +597,13 @@ export default function FNOLPage() {
                           )}
                         </p>
                         <Button 
-                          variant="ghost" 
+                          variant="outline" 
                           size="sm" 
                           onClick={refreshPaymentStatus}
-                          className="h-6 w-6 p-0"
+                          className="h-8 px-2"
                           title="Refresh payment status"
                         >
-                          🔄
+                          🔄 Refresh
                         </Button>
                       </div>
                     </div>
