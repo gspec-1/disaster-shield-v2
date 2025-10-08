@@ -86,11 +86,25 @@ export default function ResponsiveNavbar({
   }
 
   const renderDesktopNav = () => (
-    <div className="hidden lg:flex items-center justify-between w-full relative">
-      {/* Left side - empty for spacing */}
-      <div className="flex-1"></div>
+    <div className="hidden lg:flex items-center w-full relative">
+      {/* Left side - Logo and Back Button */}
+      <div className="flex items-center space-x-4">
+        {showBackButton && (
+          <Link 
+            to={backButtonLink} 
+            className="flex items-center text-gray-600 hover:text-blue-600 transition-colors"
+          >
+            <ChevronLeft className="h-5 w-5 mr-1" />
+            {backButtonText && <span className="text-sm font-medium">{backButtonText}</span>}
+          </Link>
+        )}
+        <Link to="/" className="flex items-center space-x-2">
+          <Shield className="h-8 w-8 text-blue-600" />
+          <span className="text-xl font-bold text-gray-900">DisasterShield</span>
+        </Link>
+      </div>
       
-      {/* Center - Navigation Links - Absolutely positioned and centered */}
+      {/* Center - Navigation Links - Centered on entire screen */}
       {showNavLinks && navLinks.length > 0 && (
         <nav className="absolute left-1/2 transform -translate-x-1/2 flex space-x-8">
           {navLinks.map((link) => (
@@ -108,7 +122,7 @@ export default function ResponsiveNavbar({
       )}
       
       {/* Right side - User actions */}
-      <div className="flex items-center space-x-4 flex-1 justify-end">
+      <div className="flex items-center space-x-4 ml-auto">
       
         {/* User-specific content - only show if user is logged in */}
         {user && (
@@ -294,23 +308,6 @@ export default function ResponsiveNavbar({
     <header className="bg-white border-b">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
-          {/* Logo and Back Button */}
-          <div className="flex items-center space-x-4">
-            {showBackButton && (
-              <Link 
-                to={backButtonLink} 
-                className="flex items-center text-gray-600 hover:text-blue-600 transition-colors"
-              >
-                <ChevronLeft className="h-5 w-5 mr-1" />
-                {backButtonText && <span className="text-sm font-medium">{backButtonText}</span>}
-              </Link>
-            )}
-            <Link to="/" className="flex items-center space-x-2">
-              <Shield className="h-8 w-8 text-blue-600" />
-              <span className="text-xl font-bold text-gray-900">DisasterShield</span>
-            </Link>
-          </div>
-          
           {/* Desktop Navigation */}
           {renderDesktopNav()}
           
