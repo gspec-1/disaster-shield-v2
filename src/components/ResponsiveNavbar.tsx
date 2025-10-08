@@ -85,7 +85,7 @@ export default function ResponsiveNavbar({
   }
 
   const renderDesktopNav = () => (
-    <div className="hidden md:flex items-center space-x-4">
+    <div className="hidden lg:flex items-center space-x-4">
       {/* Navigation Links */}
       {showNavLinks && navLinks.length > 0 && (
         <nav className="flex space-x-6 mr-6">
@@ -144,15 +144,19 @@ export default function ResponsiveNavbar({
   )
 
   const renderMobileNav = () => (
-    <div className="md:hidden">
-      <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+    <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
         <SheetTrigger asChild>
           <Button variant="ghost" size="sm">
             <Menu className="h-5 w-5" />
           </Button>
         </SheetTrigger>
-        <SheetContent side="right" className="w-80">
+        <SheetContent side="right" className="w-80 max-w-[90vw] sm:max-w-[85vw]">
           <div className="flex flex-col space-y-6 mt-6">
+            {/* Welcome Text - First */}
+            <div className="text-sm text-gray-600 border-b pb-4">
+              {getWelcomeText()}
+            </div>
+            
             {/* Navigation Links */}
             {showNavLinks && navLinks.length > 0 && (
               <div className="border-b pb-4">
@@ -168,11 +172,6 @@ export default function ResponsiveNavbar({
                 ))}
               </div>
             )}
-            
-            {/* Welcome Text */}
-            <div className="text-sm text-gray-600 border-b pb-4">
-              {getWelcomeText()}
-            </div>
             
             {/* Admin Portal Link for clients with admin role */}
             {userRole === 'client' && user?.role === 'admin' && (
@@ -193,12 +192,6 @@ export default function ResponsiveNavbar({
                 <ShoppingCart userId={user?.id} />
               </div>
             )}
-            
-            {/* Notifications */}
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-700">Notifications</span>
-              <NotificationBell />
-            </div>
             
             {/* Subscription Status */}
             <div className="flex items-center justify-between">
@@ -235,7 +228,6 @@ export default function ResponsiveNavbar({
           </div>
         </SheetContent>
       </Sheet>
-    </div>
   )
 
   return (
@@ -262,8 +254,11 @@ export default function ResponsiveNavbar({
           {/* Desktop Navigation */}
           {renderDesktopNav()}
           
-          {/* Mobile Navigation */}
-          {renderMobileNav()}
+          {/* Mobile Navigation - Notification Bell + Hamburger */}
+          <div className="lg:hidden flex items-center space-x-2">
+            <NotificationBell />
+            {renderMobileNav()}
+          </div>
         </div>
       </div>
     </header>
