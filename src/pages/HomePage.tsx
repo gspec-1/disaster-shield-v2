@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Shield, Clock, Users, FileCheck, ArrowRight, CheckCircle } from 'lucide-react'
 import { supabase, isConfigured } from '@/src/lib/supabase'
-import NotificationBell from '@/src/components/NotificationBell'
+import ResponsiveNavbar from '@/src/components/ResponsiveNavbar'
 
 export default function HomePage() {
   const navigate = useNavigate()
@@ -101,77 +101,27 @@ export default function HomePage() {
   return (
     <div className="min-h-screen">
       {/* Header */}
-      <header className="border-b border-white/20 bg-white/95 backdrop-blur-sm sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-2">
-              <Shield className="h-8 w-8 text-blue-600" />
-              <span className="text-xl font-bold text-gray-900">DisasterShield</span>
-            </div>
-            
-            <nav className="hidden md:flex space-x-8 absolute left-1/2 transform -translate-x-1/2">
-              <Link to="/" className="text-gray-700 hover:text-blue-600 transition-colors font-medium">
-                Home
-              </Link>
-              <Link to="/about" className="text-gray-700 hover:text-blue-600 transition-colors font-medium">
-                About
-              </Link>
-              <Link to="/contact" className="text-gray-700 hover:text-blue-600 transition-colors font-medium">
-                Contact
-              </Link>
-            </nav>
-            
-            <div className="flex items-center space-x-4">
-              {loading ? (
-                <div className="text-sm text-gray-600">Loading...</div>
-              ) : user ? (
-                <>
-                  <span className="text-sm text-gray-600">
-                    Welcome, {profile?.full_name || user.user_metadata?.full_name || user.email?.split('@')[0] || 'User'}
-                  </span>
-                  <NotificationBell />
-                  <Link 
-                    to={
-                      profile?.role === 'admin' || user.user_metadata?.role === 'admin' ? '/admin' :
-                      profile?.role === 'contractor' || user.user_metadata?.role === 'contractor' ? '/contractor/dashboard' : 
-                      '/client/dashboard'
-                    } 
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-all duration-200 font-medium shadow-sm hover:shadow-md"
-                  >
-                    Dashboard
-                  </Link>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={async () => {
-                      if (supabase) {
-                        await supabase.auth.signOut();
-                        navigate('/');
-                      }
-                    }}
-                    className="text-gray-700 hover:text-red-600 border-gray-300 hover:border-red-300"
-                  >
-                    Sign Out
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <Link to="/auth/login">
-                    <Button variant="outline" className="border-blue-600 text-blue-600 hover:bg-blue-50">
-                      Sign In
-                    </Button>
-                  </Link>
-                  <Link to="/auth/signup">
-                    <Button className="bg-blue-600 hover:bg-blue-700 text-white">
-                      Sign Up
-                    </Button>
-                  </Link>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-      </header>
+      <div className="border-b border-white/20 bg-white/95 backdrop-blur-sm sticky top-0 z-50">
+        <ResponsiveNavbar
+          user={user}
+          userRole={profile?.role || user?.user_metadata?.role || 'client'}
+          showShoppingCart={profile?.role === 'client' || user?.user_metadata?.role === 'client'}
+          showSettings={false}
+          showNavLinks={true}
+          navLinks={[
+            { label: 'Home', href: '/' },
+            { label: 'About', href: '/about' },
+            { label: 'Contact', href: '/contact' }
+          ]}
+          welcomeText={user ? `Welcome, ${profile?.full_name || user.user_metadata?.full_name || user.email?.split('@')[0] || 'User'}` : undefined}
+          onSignOut={async () => {
+            if (supabase) {
+              await supabase.auth.signOut();
+              navigate('/');
+            }
+          }}
+        />
+      </div>
 
       {/* Hero Section */}
       <section className="relative pt-20 pb-32 overflow-hidden">

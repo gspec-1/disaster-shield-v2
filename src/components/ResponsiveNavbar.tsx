@@ -29,6 +29,8 @@ interface ResponsiveNavbarProps {
   showBackButton?: boolean
   backButtonText?: string
   backButtonLink?: string
+  showNavLinks?: boolean
+  navLinks?: Array<{ label: string; href: string }>
 }
 
 export default function ResponsiveNavbar({
@@ -41,7 +43,9 @@ export default function ResponsiveNavbar({
   onSignOut,
   showBackButton = false,
   backButtonText = 'Back',
-  backButtonLink = '/'
+  backButtonLink = '/',
+  showNavLinks = false,
+  navLinks = []
 }: ResponsiveNavbarProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
@@ -82,6 +86,21 @@ export default function ResponsiveNavbar({
 
   const renderDesktopNav = () => (
     <div className="hidden md:flex items-center space-x-4">
+      {/* Navigation Links */}
+      {showNavLinks && navLinks.length > 0 && (
+        <nav className="flex space-x-6 mr-6">
+          {navLinks.map((link) => (
+            <Link
+              key={link.href}
+              to={link.href}
+              className="text-gray-700 hover:text-blue-600 transition-colors font-medium"
+            >
+              {link.label}
+            </Link>
+          ))}
+        </nav>
+      )}
+      
       <span className="text-sm text-gray-600">{getWelcomeText()}</span>
       
       {/* Admin Portal Link for clients with admin role */}
@@ -134,6 +153,22 @@ export default function ResponsiveNavbar({
         </SheetTrigger>
         <SheetContent side="right" className="w-80">
           <div className="flex flex-col space-y-6 mt-6">
+            {/* Navigation Links */}
+            {showNavLinks && navLinks.length > 0 && (
+              <div className="border-b pb-4">
+                {navLinks.map((link) => (
+                  <Link
+                    key={link.href}
+                    to={link.href}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="block py-2 text-gray-700 hover:text-blue-600 transition-colors"
+                  >
+                    {link.label}
+                  </Link>
+                ))}
+              </div>
+            )}
+            
             {/* Welcome Text */}
             <div className="text-sm text-gray-600 border-b pb-4">
               {getWelcomeText()}
