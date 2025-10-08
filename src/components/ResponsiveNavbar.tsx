@@ -86,13 +86,13 @@ export default function ResponsiveNavbar({
   }
 
   const renderDesktopNav = () => (
-    <div className="hidden lg:flex items-center justify-between w-full">
+    <div className="hidden lg:flex items-center justify-between w-full relative">
       {/* Left side - empty for spacing */}
       <div className="flex-1"></div>
       
-      {/* Center - Navigation Links */}
+      {/* Center - Navigation Links - Absolutely positioned and centered */}
       {showNavLinks && navLinks.length > 0 && (
-        <nav className="flex space-x-6">
+        <nav className="absolute left-1/2 transform -translate-x-1/2 flex space-x-8">
           {navLinks.map((link) => (
             <Link
               key={link.href}
