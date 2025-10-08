@@ -86,11 +86,13 @@ export default function ResponsiveNavbar({
   }
 
   const renderDesktopNav = () => (
-    <div className="hidden lg:flex items-center space-x-4 relative">
+    <div className="hidden lg:flex items-center space-x-4 relative w-full">
       {/* Navigation Links */}
       {showNavLinks && navLinks.length > 0 && (
-        <nav className={`flex space-x-6 transition-all duration-500 ease-in-out ${
-          location.pathname === '/' ? 'mr-6' : 'absolute left-1/2 transform -translate-x-1/2'
+        <nav className={`flex space-x-6 transition-all duration-700 ease-in-out ${
+          location.pathname === '/' 
+            ? 'mr-6 relative translate-x-0' 
+            : 'absolute left-1/2 transform -translate-x-1/2 z-10'
         }`}>
           {navLinks.map((link) => (
             <Link
