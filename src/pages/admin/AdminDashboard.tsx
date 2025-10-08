@@ -142,11 +142,8 @@ export default function AdminDashboard() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-4">
-              <Link to="/client/dashboard" className="flex items-center text-gray-600 hover:text-blue-600 transition-colors">
-                <ChevronLeft className="h-5 w-5 mr-1" />
-                <span className="text-sm font-medium">Back to Dashboard</span>
-              </Link>
               <Link to="/" className="flex items-center space-x-2">
+                <ChevronLeft className="h-5 w-5 mr-1" />
                 <Shield className="h-8 w-8 text-blue-600" />
                 <span className="text-xl font-bold text-gray-900">DisasterShield</span>
               </Link>
