@@ -33,6 +33,7 @@ export default function PaymentPage() {
   const [orders, setOrders] = useState<any[]>([])
   const [completedOrders, setCompletedOrders] = useState<any[]>([])
   const [checkingStatus, setCheckingStatus] = useState(false)
+  const [acceptedEstimate, setAcceptedEstimate] = useState<any>(null)
 
   useEffect(() => {
     const loadData = async () => {
@@ -107,6 +108,21 @@ export default function PaymentPage() {
             .single()
 
           setContractor(contractorData)
+        }
+
+        // Load accepted contractor estimate
+        const { data: estimateData, error: estimateError } = await supabase
+          .from('contractor_estimates')
+          .select('*')
+          .eq('project_id', projectId)
+          .eq('status', 'accepted')
+          .single()
+
+        if (!estimateError && estimateData) {
+          setAcceptedEstimate(estimateData)
+          console.log('Accepted estimate loaded:', estimateData)
+        } else {
+          console.log('No accepted estimate found for project:', projectId)
         }
 
         // Load user's order history for this project
@@ -629,8 +645,19 @@ export default function PaymentPage() {
                       <p className="text-gray-600 text-sm">{STRIPE_PRODUCTS.REPAIR_COST_ESTIMATE.description}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-2xl font-bold text-gray-900">Dynamic Pricing</p>
-                      <p className="text-sm text-gray-500">Based on contractor estimate</p>
+                      {acceptedEstimate ? (
+                        <>
+                          <p className="text-2xl font-bold text-gray-900">
+                            ${(acceptedEstimate.estimate_amount / 100).toFixed(2)}
+                          </p>
+                          <p className="text-sm text-gray-500">Contractor estimate</p>
+                        </>
+                      ) : (
+                        <>
+                          <p className="text-2xl font-bold text-gray-900">Dynamic Pricing</p>
+                          <p className="text-sm text-gray-500">Based on contractor estimate</p>
+                        </>
+                      )}
                     </div>
                   </div>
                   {isPaymentCompletedLocal('REPAIR_COST_ESTIMATE') ? (
@@ -641,10 +668,12 @@ export default function PaymentPage() {
                   ) : (
                     <Button 
                       onClick={() => handlePayment('REPAIR_COST_ESTIMATE')}
-                      disabled={processing}
-                      className="w-full bg-orange-600 hover:bg-orange-700"
+                      disabled={processing || !acceptedEstimate}
+                      className="w-full bg-orange-600 hover:bg-orange-700 disabled:bg-gray-400"
                     >
-                      {processing ? 'Processing...' : 'Pay Repair Cost'}
+                      {processing ? 'Processing...' : 
+                       !acceptedEstimate ? 'No Estimate Available' : 
+                       'Pay Repair Cost'}
                     </Button>
                   )}
                 </div>
