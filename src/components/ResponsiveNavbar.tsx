@@ -10,7 +10,8 @@ import {
   LogOut,
   Bell,
   ShoppingCart as ShoppingCartIcon,
-  User
+  User,
+  ChevronLeft
 } from 'lucide-react'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
 import NotificationBell from './NotificationBell'
@@ -213,8 +214,8 @@ export default function ResponsiveNavbar({
                 to={backButtonLink} 
                 className="flex items-center text-gray-600 hover:text-blue-600 transition-colors"
               >
-                <Shield className="h-5 w-5 mr-1" />
-                <span className="text-sm font-medium">{backButtonText}</span>
+                <ChevronLeft className="h-5 w-5 mr-1" />
+                {backButtonText && <span className="text-sm font-medium">{backButtonText}</span>}
               </Link>
             )}
             <Link to="/" className="flex items-center space-x-2">
