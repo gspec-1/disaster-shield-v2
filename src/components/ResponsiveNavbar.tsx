@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { 
@@ -48,6 +48,7 @@ export default function ResponsiveNavbar({
   navLinks = []
 }: ResponsiveNavbarProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const location = useLocation()
 
   const getWelcomeText = () => {
     if (welcomeText) return welcomeText
@@ -85,15 +86,19 @@ export default function ResponsiveNavbar({
   }
 
   const renderDesktopNav = () => (
-    <div className="hidden lg:flex items-center space-x-4">
+    <div className="hidden lg:flex items-center space-x-4 relative">
       {/* Navigation Links */}
       {showNavLinks && navLinks.length > 0 && (
-        <nav className="flex space-x-6 mr-6">
+        <nav className={`flex space-x-6 transition-all duration-500 ease-in-out ${
+          location.pathname === '/' ? 'mr-6' : 'absolute left-1/2 transform -translate-x-1/2'
+        }`}>
           {navLinks.map((link) => (
             <Link
               key={link.href}
               to={link.href}
-              className="text-gray-700 hover:text-blue-600 transition-colors font-medium"
+              className={`text-gray-700 hover:text-blue-600 transition-all duration-300 font-medium relative ${
+                location.pathname === link.href ? 'text-blue-600 font-semibold' : ''
+              }`}
             >
               {link.label}
             </Link>
