@@ -358,7 +358,7 @@ export default function FNOLPage() {
   }
 
   const submitFNOL = async () => {
-    if (!existingFNOL) return
+    if (!existingFNOL || !project || !selectedCompany) return
 
     // Check if FNOL Generation Fee has been paid
     if (!isFNOLPaymentCompleted()) {
@@ -368,29 +368,37 @@ export default function FNOLPage() {
 
     setSubmitting(true)
     try {
-      // Update FNOL record status
-      const { error: updateError } = await supabase
-        .from('fnol_records')
-        .update({
-          status: 'submitted',
-          submission_date: new Date().toISOString(),
-          submission_notes: formData.submission_notes
+      // Call the submit-fnol Edge Function
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/submit-fnol`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
+        },
+        body: JSON.stringify({
+          project_id: project.id,
+          insurance_company_id: selectedCompany.id,
+          policy_number: formData.policy_number,
+          submission_method: formData.submission_method,
+          submission_notes: formData.submission_notes,
+          additional_notes: formData.additional_notes
         })
-        .eq('id', existingFNOL.id)
+      })
 
-      if (updateError) throw updateError
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to submit FNOL')
+      }
 
-      // Update project FNOL status
-      await supabase
-        .from('projects')
-        .update({ fnol_status: 'submitted' })
-        .eq('id', project.id)
+      const result = await response.json()
+      console.log('FNOL submission result:', result)
 
       toast.success('FNOL submitted successfully!')
       await loadData()
 
     } catch (error) {
-      toast.error('Failed to submit FNOL')
+      console.error('FNOL submission error:', error)
+      toast.error(`Failed to submit FNOL: ${error instanceof Error ? error.message : 'Unknown error'}`)
     } finally {
       setSubmitting(false)
     }
