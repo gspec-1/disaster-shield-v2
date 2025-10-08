@@ -86,10 +86,13 @@ export default function ResponsiveNavbar({
   }
 
   const renderDesktopNav = () => (
-    <div className="hidden lg:flex items-center space-x-4 relative w-full">
-      {/* Navigation Links */}
+    <div className="hidden lg:flex items-center justify-between w-full">
+      {/* Left side - empty for spacing */}
+      <div className="flex-1"></div>
+      
+      {/* Center - Navigation Links */}
       {showNavLinks && navLinks.length > 0 && (
-        <nav className="flex space-x-6 absolute left-1/2 transform -translate-x-1/2 z-10">
+        <nav className="flex space-x-6">
           {navLinks.map((link) => (
             <Link
               key={link.href}
@@ -104,65 +107,69 @@ export default function ResponsiveNavbar({
         </nav>
       )}
       
-      {/* User-specific content - only show if user is logged in */}
-      {user && (
-        <>
-          <span className="text-sm text-gray-600">{getWelcomeText()}</span>
-          
-          {/* Admin Portal Link for clients with admin role */}
-          {userRole === 'client' && user?.role === 'admin' && (
-            <Link to="/admin">
-              <Button variant="outline" size="sm">
-                Admin Portal
-              </Button>
-            </Link>
-          )}
-          
-          {/* Shopping Cart - only for clients */}
-          {showShoppingCart && userRole === 'client' && (
-            <ShoppingCart userId={user?.id} />
-          )}
-          
-          {/* Notification Bell */}
-          <NotificationBell />
-          
-          {/* Subscription Status */}
-          <SubscriptionStatus userId={user?.id} />
-          
-          {/* Settings */}
-          {showSettings && (
-            <Link to={settingsLink}>
-              <Button variant="outline" size="sm">
-                {getSettingsIcon()}
-                <span className="ml-2">{getSettingsText()}</span>
-              </Button>
-            </Link>
-          )}
-        </>
-      )}
+      {/* Right side - User actions */}
+      <div className="flex items-center space-x-4 flex-1 justify-end">
       
-      {/* Sign Out or Sign In/Sign Up */}
-      {user ? (
-        onSignOut && (
-          <Button variant="outline" onClick={onSignOut}>
-            <LogOut className="h-4 w-4 mr-2" />
-            Sign Out
-          </Button>
-        )
-      ) : (
-        <div className="flex items-center space-x-2">
-          <Link to="/auth/login">
-            <Button variant="outline" className="border-blue-600 text-blue-600 hover:bg-blue-50">
-              Sign In
+        {/* User-specific content - only show if user is logged in */}
+        {user && (
+          <>
+            <span className="text-sm text-gray-600">{getWelcomeText()}</span>
+            
+            {/* Admin Portal Link for clients with admin role */}
+            {userRole === 'client' && user?.role === 'admin' && (
+              <Link to="/admin">
+                <Button variant="outline" size="sm">
+                  Admin Portal
+                </Button>
+              </Link>
+            )}
+            
+            {/* Shopping Cart - only for clients */}
+            {showShoppingCart && userRole === 'client' && (
+              <ShoppingCart userId={user?.id} />
+            )}
+            
+            {/* Notification Bell */}
+            <NotificationBell />
+            
+            {/* Subscription Status */}
+            <SubscriptionStatus userId={user?.id} />
+            
+            {/* Settings */}
+            {showSettings && (
+              <Link to={settingsLink}>
+                <Button variant="outline" size="sm">
+                  {getSettingsIcon()}
+                  <span className="ml-2">{getSettingsText()}</span>
+                </Button>
+              </Link>
+            )}
+          </>
+        )}
+        
+        {/* Sign Out or Sign In/Sign Up */}
+        {user ? (
+          onSignOut && (
+            <Button variant="outline" onClick={onSignOut}>
+              <LogOut className="h-4 w-4 mr-2" />
+              Sign Out
             </Button>
-          </Link>
-          <Link to="/auth/signup">
-            <Button className="bg-blue-600 hover:bg-blue-700 text-white">
-              Sign Up
-            </Button>
-          </Link>
-        </div>
-      )}
+          )
+        ) : (
+          <div className="flex items-center space-x-2">
+            <Link to="/auth/login">
+              <Button variant="outline" className="border-blue-600 text-blue-600 hover:bg-blue-50">
+                Sign In
+              </Button>
+            </Link>
+            <Link to="/auth/signup">
+              <Button className="bg-blue-600 hover:bg-blue-700 text-white">
+                Sign Up
+              </Button>
+            </Link>
+          </div>
+        )}
+      </div>
     </div>
   )
 
