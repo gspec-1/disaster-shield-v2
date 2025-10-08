@@ -117,7 +117,7 @@ export default function HomePage() {
           onSignOut={async () => {
             if (supabase) {
               await supabase.auth.signOut();
-              navigate('/');
+              window.location.href = '/';
             }
           }}
         />
