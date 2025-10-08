@@ -35,7 +35,26 @@ export async function createCheckoutSession(data: CreateCheckoutSessionData): Pr
       throw new Error('Authentication required')
     }
 
-    console.log(`Making request to Stripe checkout endpoint with price_id: ${product.priceId}`)
+    // For repair cost estimates, we need to get the dynamic price ID
+    let priceId = product.priceId
+    if (data.productKey === 'REPAIR_COST_ESTIMATE') {
+      // Get the accepted estimate to find the dynamic price ID
+      const { data: estimateData, error: estimateError } = await supabase
+        .from('contractor_estimates')
+        .select('stripe_price_id')
+        .eq('project_id', data.projectId)
+        .eq('status', 'accepted')
+        .single()
+
+      if (estimateError || !estimateData?.stripe_price_id) {
+        throw new Error('No accepted estimate found or dynamic price not created')
+      }
+      
+      priceId = estimateData.stripe_price_id
+      console.log(`Using dynamic price ID for repair cost: ${priceId}`)
+    }
+
+    console.log(`Making request to Stripe checkout endpoint with price_id: ${priceId}`)
     
     try {
       const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/stripe-checkout`, {
@@ -45,7 +64,7 @@ export async function createCheckoutSession(data: CreateCheckoutSessionData): Pr
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          price_id: product.priceId,
+          price_id: priceId,
           mode: product.mode,
           success_url: data.successUrl,
           cancel_url: data.cancelUrl,
