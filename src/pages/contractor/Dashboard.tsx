@@ -5,8 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Shield, Settings, Briefcase, Clock, CheckCircle, AlertCircle } from 'lucide-react'
 import { supabase } from '@/src/lib/supabase'
-import NotificationBell from '@/src/components/NotificationBell'
-import SubscriptionStatus from '@/src/components/SubscriptionStatus'
+import ResponsiveNavbar from '@/src/components/ResponsiveNavbar'
 
 export default function ContractorDashboard() {
   const navigate = useNavigate()
@@ -117,32 +116,15 @@ export default function ContractorDashboard() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="bg-white border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <Link to="/" className="flex items-center space-x-2">
-              <Shield className="h-8 w-8 text-blue-600" />
-              <span className="text-xl font-bold text-gray-900">DisasterShield</span>
-            </Link>
-            <div className="flex items-center space-x-4">
-              <span className="text-sm text-gray-600">
-                Welcome, {contractor?.company_name || user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'User'}
-              </span>
-              <NotificationBell />
-              <SubscriptionStatus userId={user?.id} />
-              <Link to="/contractor/profile">
-                <Button variant="outline" size="sm">
-                  <Settings className="mr-2 h-4 w-4" />
-                  Settings
-                </Button>
-              </Link>
-              <Button variant="outline" onClick={handleSignOut}>
-                Sign Out
-              </Button>
-            </div>
-          </div>
-        </div>
-      </header>
+      <ResponsiveNavbar
+        user={user}
+        userRole="contractor"
+        showShoppingCart={false}
+        showSettings={true}
+        settingsLink="/contractor/profile"
+        welcomeText={contractor?.company_name || user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'User'}
+        onSignOut={handleSignOut}
+      />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">

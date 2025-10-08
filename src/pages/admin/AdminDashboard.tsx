@@ -18,6 +18,7 @@ import {
 } from 'lucide-react'
 import { supabase } from '@/src/lib/supabase'
 import { toast } from 'sonner'
+import ResponsiveNavbar from '@/src/components/ResponsiveNavbar'
 
 interface DashboardStats {
   totalProjects: number
@@ -138,24 +139,15 @@ export default function AdminDashboard() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="bg-white border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-4">
-              <Link to="/" className="flex items-center space-x-2">
-                <ChevronLeft className="h-5 w-5 mr-1" />
-                <Shield className="h-8 w-8 text-blue-600" />
-                <span className="text-xl font-bold text-gray-900">DisasterShield</span>
-              </Link>
-            </div>
-            <div className="flex items-center space-x-4">
-              <div className="text-sm text-gray-600">
-                Admin Portal
-              </div>
-            </div>
-          </div>
-        </div>
-      </header>
+      <ResponsiveNavbar
+        user={user}
+        userRole="admin"
+        showShoppingCart={false}
+        showSettings={false}
+        showBackButton={true}
+        backButtonText="Back to Dashboard"
+        backButtonLink="/client/dashboard"
+      />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">

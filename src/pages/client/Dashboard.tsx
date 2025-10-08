@@ -8,9 +8,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog'
 import { supabase } from '@/src/lib/supabase'
 import type { Database } from '@/src/lib/supabase'
-import NotificationBell from '@/src/components/NotificationBell'
-import SubscriptionStatus from '@/src/components/SubscriptionStatus'
-import ShoppingCart from '@/src/components/ShoppingCart'
+import ResponsiveNavbar from '@/src/components/ResponsiveNavbar'
 import { toast } from 'sonner'
 
 type Project = Database['public']['Tables']['projects']['Row']
@@ -160,32 +158,14 @@ export default function ClientDashboard() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="bg-white border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <Link to="/" className="flex items-center space-x-2">
-              <Shield className="h-8 w-8 text-blue-600" />
-              <span className="text-xl font-bold text-gray-900">DisasterShield</span>
-            </Link>
-            <div className="flex items-center space-x-4">
-              <span className="text-sm text-gray-600">Welcome back!</span>
-              {profile?.role === 'admin' && (
-                <Link to="/admin">
-                  <Button variant="outline" size="sm">
-                    Admin Portal
-                  </Button>
-                </Link>
-              )}
-              <ShoppingCart userId={user?.id} />
-              <NotificationBell />
-              <SubscriptionStatus userId={user?.id} />
-              <Button variant="outline" onClick={handleSignOut}>
-                Sign Out
-              </Button>
-            </div>
-          </div>
-        </div>
-      </header>
+      <ResponsiveNavbar
+        user={user}
+        userRole="client"
+        showShoppingCart={true}
+        showSettings={true}
+        settingsLink="/client/profile"
+        onSignOut={handleSignOut}
+      />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
