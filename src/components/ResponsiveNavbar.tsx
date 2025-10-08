@@ -101,44 +101,64 @@ export default function ResponsiveNavbar({
         </nav>
       )}
       
-      <span className="text-sm text-gray-600">{getWelcomeText()}</span>
+      {/* User-specific content - only show if user is logged in */}
+      {user && (
+        <>
+          <span className="text-sm text-gray-600">{getWelcomeText()}</span>
+          
+          {/* Admin Portal Link for clients with admin role */}
+          {userRole === 'client' && user?.role === 'admin' && (
+            <Link to="/admin">
+              <Button variant="outline" size="sm">
+                Admin Portal
+              </Button>
+            </Link>
+          )}
+          
+          {/* Shopping Cart - only for clients */}
+          {showShoppingCart && userRole === 'client' && (
+            <ShoppingCart userId={user?.id} />
+          )}
+          
+          {/* Notification Bell */}
+          <NotificationBell />
+          
+          {/* Subscription Status */}
+          <SubscriptionStatus userId={user?.id} />
+          
+          {/* Settings */}
+          {showSettings && (
+            <Link to={settingsLink}>
+              <Button variant="outline" size="sm">
+                {getSettingsIcon()}
+                <span className="ml-2">{getSettingsText()}</span>
+              </Button>
+            </Link>
+          )}
+        </>
+      )}
       
-      {/* Admin Portal Link for clients with admin role */}
-      {userRole === 'client' && user?.role === 'admin' && (
-        <Link to="/admin">
-          <Button variant="outline" size="sm">
-            Admin Portal
+      {/* Sign Out or Sign In/Sign Up */}
+      {user ? (
+        onSignOut && (
+          <Button variant="outline" onClick={onSignOut}>
+            <LogOut className="h-4 w-4 mr-2" />
+            Sign Out
           </Button>
-        </Link>
-      )}
-      
-      {/* Shopping Cart - only for clients */}
-      {showShoppingCart && userRole === 'client' && (
-        <ShoppingCart userId={user?.id} />
-      )}
-      
-      {/* Notification Bell */}
-      <NotificationBell />
-      
-      {/* Subscription Status */}
-      <SubscriptionStatus userId={user?.id} />
-      
-      {/* Settings */}
-      {showSettings && (
-        <Link to={settingsLink}>
-          <Button variant="outline" size="sm">
-            {getSettingsIcon()}
-            <span className="ml-2">{getSettingsText()}</span>
-          </Button>
-        </Link>
-      )}
-      
-      {/* Sign Out */}
-      {onSignOut && (
-        <Button variant="outline" onClick={onSignOut}>
-          <LogOut className="h-4 w-4 mr-2" />
-          Sign Out
-        </Button>
+        )
+      ) : (
+        <div className="flex items-center space-x-2">
+          <Link to="/auth/login">
+            <Button variant="outline" className="border-blue-600 text-blue-600 hover:bg-blue-50">
+              Sign In
+            </Button>
+          </Link>
+          <Link to="/auth/signup">
+            <Button className="bg-blue-600 hover:bg-blue-700 text-white">
+              Sign Up
+            </Button>
+          </Link>
+        </div>
       )}
     </div>
   )
@@ -152,10 +172,12 @@ export default function ResponsiveNavbar({
         </SheetTrigger>
         <SheetContent side="right" className="w-80 max-w-[90vw] sm:max-w-[85vw]">
           <div className="flex flex-col space-y-6 mt-6">
-            {/* Welcome Text - First */}
-            <div className="text-sm text-gray-600 border-b pb-4">
-              {getWelcomeText()}
-            </div>
+            {/* Welcome Text - First (only if user is logged in) */}
+            {user && (
+              <div className="text-sm text-gray-600 border-b pb-4">
+                {getWelcomeText()}
+              </div>
+            )}
             
             {/* Navigation Links */}
             {showNavLinks && navLinks.length > 0 && (
@@ -173,57 +195,85 @@ export default function ResponsiveNavbar({
               </div>
             )}
             
-            {/* Admin Portal Link for clients with admin role */}
-            {userRole === 'client' && user?.role === 'admin' && (
-              <Link 
-                to="/admin" 
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="flex items-center space-x-2 text-gray-700 hover:text-blue-600 transition-colors"
-              >
-                <Shield className="h-4 w-4" />
-                <span>Admin Portal</span>
-              </Link>
+            {/* User-specific items - only show if user is logged in */}
+            {user && (
+              <>
+                {/* Admin Portal Link for clients with admin role */}
+                {userRole === 'client' && user?.role === 'admin' && (
+                  <Link 
+                    to="/admin" 
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="flex items-center space-x-2 text-gray-700 hover:text-blue-600 transition-colors"
+                  >
+                    <Shield className="h-4 w-4" />
+                    <span>Admin Portal</span>
+                  </Link>
+                )}
+                
+                {/* Shopping Cart - only for clients */}
+                {showShoppingCart && userRole === 'client' && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-700">Payment History</span>
+                    <ShoppingCart userId={user?.id} />
+                  </div>
+                )}
+                
+                {/* Subscription Status */}
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-700">Subscription</span>
+                  <SubscriptionStatus userId={user?.id} />
+                </div>
+                
+                {/* Settings */}
+                {showSettings && (
+                  <Link 
+                    to={settingsLink}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="flex items-center space-x-2 text-gray-700 hover:text-blue-600 transition-colors"
+                  >
+                    {getSettingsIcon()}
+                    <span>{getSettingsText()}</span>
+                  </Link>
+                )}
+              </>
             )}
             
-            {/* Shopping Cart - only for clients */}
-            {showShoppingCart && userRole === 'client' && (
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-700">Payment History</span>
-                <ShoppingCart userId={user?.id} />
+            {/* Sign Out or Sign In/Sign Up */}
+            {user ? (
+              onSignOut && (
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    onSignOut()
+                    setIsMobileMenuOpen(false)
+                  }}
+                  className="w-full justify-start"
+                >
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Sign Out
+                </Button>
+              )
+            ) : (
+              <div className="space-y-2">
+                <Link 
+                  to="/auth/login"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="block"
+                >
+                  <Button variant="outline" className="w-full border-blue-600 text-blue-600 hover:bg-blue-50">
+                    Sign In
+                  </Button>
+                </Link>
+                <Link 
+                  to="/auth/signup"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="block"
+                >
+                  <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white">
+                    Sign Up
+                  </Button>
+                </Link>
               </div>
-            )}
-            
-            {/* Subscription Status */}
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-700">Subscription</span>
-              <SubscriptionStatus userId={user?.id} />
-            </div>
-            
-            {/* Settings */}
-            {showSettings && (
-              <Link 
-                to={settingsLink}
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="flex items-center space-x-2 text-gray-700 hover:text-blue-600 transition-colors"
-              >
-                {getSettingsIcon()}
-                <span>{getSettingsText()}</span>
-              </Link>
-            )}
-            
-            {/* Sign Out */}
-            {onSignOut && (
-              <Button 
-                variant="outline" 
-                onClick={() => {
-                  onSignOut()
-                  setIsMobileMenuOpen(false)
-                }}
-                className="w-full justify-start"
-              >
-                <LogOut className="h-4 w-4 mr-2" />
-                Sign Out
-              </Button>
             )}
           </div>
         </SheetContent>
@@ -256,7 +306,7 @@ export default function ResponsiveNavbar({
           
           {/* Mobile Navigation - Notification Bell + Hamburger */}
           <div className="lg:hidden flex items-center space-x-2">
-            <NotificationBell />
+            {user && <NotificationBell />}
             {renderMobileNav()}
           </div>
         </div>
